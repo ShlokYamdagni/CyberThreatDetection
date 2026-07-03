@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Upload CSV{% endblock %}
+{% block page_title %}Batch Prediction - CSV Upload{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Upload Area -->
+    <div class="col-lg-6">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-cloud-arrow-up-fill"></i> Upload Network Traffic Data</h5>
+            </div>
+            <div class="cyber-card-body">
+                {% if not model_info %}
+                <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Model Not Trained!</strong> Run <code>python train_model.py</code> first.
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Drop Zone -->
+                <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-zone-content">
+                        <div class="upload-icon">
+                            <i class="bi bi-cloud-arrow-up-fill"></i>
+                        </div>
+                        <h4>Drag & Drop CSV File Here</h4>
+                        <p class="text-muted">or click to browse your files</p>
+                        <p class="text-muted small">Maximum file size: 16 MB</p>
+                        <span class="badge bg-info">CSV files only</span>
+                    </div>
+                    <input type="file" id="fileInput" accept=".csv" hidden>
+                </div>
+
+                <!-- Selected File Info -->
+                <div class="selected-file d-none" id="selectedFile">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size: 2.5rem; color: var(--accent-cyan);"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0" id="fileName">file.csv</h6>
+                            <small class="text-muted" id="fileSize">0 KB</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="clearFile()">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upload Button -->
+                <div class="mt-4">
+                    <button class="btn-cyber btn-cyber-primary w-100" id="uploadBtn" onclick="uploadFile()" disabled>
+                        <i class="bi bi-shield-fill-check"></i> Analyze Network Traffic
+                    </button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="upload-progress d-none mt-3" id="progressContainer">
+                    <div class="progress cyber-progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <p class="text-center text-muted mt-2" id="progressText">Uploading and analyzing...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSV Format Info -->
+        <div class="cyber-card mt-4">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-file-earmark-text-fill"></i> Expected CSV Format</h5>
+            </div>
+            <div class="cyber-card-body">
+                <p>Your CSV file should contain these network traffic features:</p>
+                <div class="csv-columns-grid">
+                    <span class="csv-col">duration</span>
+                    <span class="csv-col">protocol_type</span>
+                    <span class="csv-col">service</span>
+                    <span class="csv-col">flag</span>
+                    <span class="csv-col">src_bytes</span>
+                    <span class="csv-col">dst_bytes</span>
+                    <span class="csv-col">land</span>
+                    <span class="csv-col">wrong_fragment</span>
+                    <span class="csv-col">urgent</span>
+                    <span class="csv-col">hot</span>
+                    <span class="csv-col">num_failed_logins</span>
+                    <span class="csv-col">logged_in</span>
+                    <span class="csv-col">count</span>
+                    <span class="csv-col">srv_count</span>
+                    <span class="csv-col">serror_rate</span>
+                    <span class="csv-col">+ more...</span>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        You can use the sample dataset from <code>dataset/network_intrusion_data.csv</code> to test.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Area -->
+    <div class="col-lg-6">
+        <div class="cyber-card">
+            <div class="cyber-card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-clipboard-data-fill"></i> Analysis Results</h5>
+                <button class="btn btn-sm btn-outline-success d-none" id="downloadBtn" onclick="downloadResults()">
+                    <i class="bi bi-download"></i> Download CSV
+                </button>
+            </div>
+            <div class="cyber-card-body" id="resultsArea">
+                <div class="text-center py-5 text-muted">
+                    <div class="mb-3" style="font-size: 4rem; opacity: 0.3;">
+                        <i class="bi bi-clipboard-data"></i>
+                    </div>
+                    <p>Upload a CSV file to see analysis results here.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+{% endblock %}

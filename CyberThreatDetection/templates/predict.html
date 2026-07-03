@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Threat{% endblock %}
+{% block page_title %}Manual Threat Prediction{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Prediction Form -->
+    <div class="col-lg-8">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-crosshair"></i> Network Connection Parameters</h5>
+                <span class="badge bg-info">Enter connection details to analyze</span>
+            </div>
+            <div class="cyber-card-body">
+                {% if not model_info %}
+                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Model Not Trained!</strong> Please run <code>python train_model.py</code> first to train the ML model before making predictions.
+                    </div>
+                </div>
+                {% endif %}
+
+                <form id="predictionForm" onsubmit="submitPrediction(event)">
+                    <!-- Basic Connection Info -->
+                    <h6 class="form-section-title"><i class="bi bi-link-45deg"></i> Basic Connection</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Duration (seconds)</label>
+                            <input type="number" class="form-control cyber-input" name="duration" value="0" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Protocol Type</label>
+                            <select class="form-select cyber-input" name="protocol_type" required>
+                                <option value="tcp">TCP</option>
+                                <option value="udp">UDP</option>
+                                <option value="icmp">ICMP</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Service</label>
+                            <select class="form-select cyber-input" name="service" required>
+                                <option value="http">HTTP</option>
+                                <option value="https">HTTPS</option>
+                                <option value="ftp">FTP</option>
+                                <option value="ftp_data">FTP Data</option>
+                                <option value="ssh">SSH</option>
+                                <option value="telnet">Telnet</option>
+                                <option value="smtp">SMTP</option>
+                                <option value="dns">DNS</option>
+                                <option value="pop3">POP3</option>
+                                <option value="imap">IMAP</option>
+                                <option value="snmp">SNMP</option>
+                                <option value="ntp">NTP</option>
+                                <option value="ldap">LDAP</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Flag</label>
+                            <select class="form-select cyber-input" name="flag" required>
+                                <option value="SF">SF (Normal)</option>
+                                <option value="S0">S0 (Connection attempt)</option>
+                                <option value="REJ">REJ (Rejected)</option>
+                                <option value="RSTR">RSTR (Reset)</option>
+                                <option value="RSTO">RSTO (Reset originator)</option>
+                                <option value="SH">SH (SYN/FIN)</option>
+                                <option value="S1">S1</option>
+                                <option value="S2">S2</option>
+                                <option value="S3">S3</option>
+                                <option value="OTH">OTH (Other)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Source Bytes</label>
+                            <input type="number" class="form-control cyber-input" name="src_bytes" value="0" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Destination Bytes</label>
+                            <input type="number" class="form-control cyber-input" name="dst_bytes" value="0" min="0" required>
+                        </div>
+                    </div>
+
+                    <!-- Security Flags -->
+                    <h6 class="form-section-title"><i class="bi bi-flag-fill"></i> Security Flags</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Land</label>
+                            <select class="form-select cyber-input" name="land">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Wrong Fragment</label>
+                            <input type="number" class="form-control cyber-input" name="wrong_fragment" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Urgent</label>
+                            <input type="number" class="form-control cyber-input" name="urgent" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Hot</label>
+                            <input type="number" class="form-control cyber-input" name="hot" value="0" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Login Features -->
+                    <h6 class="form-section-title"><i class="bi bi-person-lock"></i> Login Features</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Failed Logins</label>
+                            <input type="number" class="form-control cyber-input" name="num_failed_logins" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Logged In</label>
+                            <select class="form-select cyber-input" name="logged_in">
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Compromised</label>
+                            <input type="number" class="form-control cyber-input" name="num_compromised" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Root Shell</label>
+                            <select class="form-select cyber-input" name="root_shell">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">SU Attempted</label>
+                            <input type="number" class="form-control cyber-input" name="su_attempted" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Num Root</label>
+                            <input type="number" class="form-control cyber-input" name="num_root" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">File Creations</label>
+                            <input type="number" class="form-control cyber-input" name="num_file_creations" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Num Shells</label>
+                            <input type="number" class="form-control cyber-input" name="num_shells" value="0" min="0">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Num Access Files</label>
+                            <input type="number" class="form-control cyber-input" name="num_access_files" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Host Login</label>
+                            <select class="form-select cyber-input" name="is_host_login">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Guest Login</label>
+                            <select class="form-select cyber-input" name="is_guest_login">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Traffic Features -->
+                    <h6 class="form-section-title"><i class="bi bi-reception-4"></i> Traffic Features</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Count</label>
+                            <input type="number" class="form-control cyber-input" name="count" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Srv Count</label>
+                            <input type="number" class="form-control cyber-input" name="srv_count" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Serror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="serror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Srv Serror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="srv_serror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Rerror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="rerror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Srv Rerror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="srv_rerror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Same Srv Rate</label>
+                            <input type="number" class="form-control cyber-input" name="same_srv_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Diff Srv Rate</label>
+                            <input type="number" class="form-control cyber-input" name="diff_srv_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- Host Features -->
+                    <h6 class="form-section-title"><i class="bi bi-hdd-network-fill"></i> Host Features</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Srv Diff Host Rate</label>
+                            <input type="number" class="form-control cyber-input" name="srv_diff_host_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dst Host Count</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_count" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dst Host Srv Count</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_srv_count" value="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dst Host Same Srv Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_same_srv_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Dst Host Diff Srv Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_diff_srv_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dst Host Same Src Port Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_same_src_port_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dst Host Srv Diff Host Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_srv_diff_host_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dst Host Serror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_serror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Dst Host Srv Serror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_srv_serror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Dst Host Rerror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_rerror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Dst Host Srv Rerror Rate</label>
+                            <input type="number" class="form-control cyber-input" name="dst_host_srv_rerror_rate" value="0" min="0" max="1" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- Quick Fill Presets -->
+                    <div class="mb-4">
+                        <h6 class="form-section-title"><i class="bi bi-lightning-fill"></i> Quick Presets</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="fillPreset('normal')">
+                                <i class="bi bi-check-circle"></i> Normal Traffic
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="fillPreset('dos')">
+                                <i class="bi bi-exclamation-triangle"></i> DoS Attack
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="fillPreset('probe')">
+                                <i class="bi bi-search"></i> Probe/Scan
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="fillPreset('r2l')">
+                                <i class="bi bi-person-x"></i> R2L Attack
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn-cyber btn-cyber-primary" id="submitBtn">
+                            <i class="bi bi-shield-fill-check"></i> Analyze Threat
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Panel -->
+    <div class="col-lg-4">
+        <div class="cyber-card sticky-top" style="top: 100px;">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-shield-fill-check"></i> Analysis Result</h5>
+            </div>
+            <div class="cyber-card-body" id="resultPanel">
+                <div class="text-center py-5 text-muted">
+                    <div class="mb-3" style="font-size: 4rem; opacity: 0.3;">
+                        <i class="bi bi-shield-fill-question"></i>
+                    </div>
+                    <p>Enter network connection parameters and click <strong>Analyze Threat</strong> to see results here.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Info Card -->
+        <div class="cyber-card mt-4">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-info-circle-fill"></i> Feature Guide</h5>
+            </div>
+            <div class="cyber-card-body">
+                <div class="feature-guide">
+                    <div class="guide-item">
+                        <strong>Duration:</strong> Connection length in seconds
+                    </div>
+                    <div class="guide-item">
+                        <strong>Protocol:</strong> TCP, UDP, or ICMP
+                    </div>
+                    <div class="guide-item">
+                        <strong>Service:</strong> Network service (HTTP, FTP, etc.)
+                    </div>
+                    <div class="guide-item">
+                        <strong>Flag:</strong> Connection status flag
+                    </div>
+                    <div class="guide-item">
+                        <strong>Src/Dst Bytes:</strong> Data transferred
+                    </div>
+                    <div class="guide-item">
+                        <strong>Error Rates:</strong> SYN/REJ error ratios (0-1)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PRESETS = {
+    normal: {
+        duration: 120, protocol_type: 'tcp', service: 'http', flag: 'SF',
+        src_bytes: 500, dst_bytes: 5000, land: 0, wrong_fragment: 0, urgent: 0,
+        hot: 0, num_failed_logins: 0, logged_in: 1, num_compromised: 0,
+        root_shell: 0, su_attempted: 0, num_root: 0, num_file_creations: 0,
+        num_shells: 0, num_access_files: 0, is_host_login: 0, is_guest_login: 0,
+        count: 5, srv_count: 5, serror_rate: 0.0, srv_serror_rate: 0.0,
+        rerror_rate: 0.0, srv_rerror_rate: 0.0, same_srv_rate: 1.0,
+        diff_srv_rate: 0.0, srv_diff_host_rate: 0.0, dst_host_count: 150,
+        dst_host_srv_count: 120, dst_host_same_srv_rate: 0.9,
+        dst_host_diff_srv_rate: 0.05, dst_host_same_src_port_rate: 0.3,
+        dst_host_srv_diff_host_rate: 0.02, dst_host_serror_rate: 0.01,
+        dst_host_srv_serror_rate: 0.01, dst_host_rerror_rate: 0.01,
+        dst_host_srv_rerror_rate: 0.01
+    },
+    dos: {
+        duration: 0, protocol_type: 'tcp', service: 'http', flag: 'S0',
+        src_bytes: 0, dst_bytes: 0, land: 0, wrong_fragment: 0, urgent: 0,
+        hot: 0, num_failed_logins: 0, logged_in: 0, num_compromised: 0,
+        root_shell: 0, su_attempted: 0, num_root: 0, num_file_creations: 0,
+        num_shells: 0, num_access_files: 0, is_host_login: 0, is_guest_login: 0,
+        count: 400, srv_count: 2, serror_rate: 0.95, srv_serror_rate: 0.95,
+        rerror_rate: 0.0, srv_rerror_rate: 0.0, same_srv_rate: 0.1,
+        diff_srv_rate: 0.05, srv_diff_host_rate: 0.0, dst_host_count: 255,
+        dst_host_srv_count: 10, dst_host_same_srv_rate: 0.05,
+        dst_host_diff_srv_rate: 0.07, dst_host_same_src_port_rate: 0.0,
+        dst_host_srv_diff_host_rate: 0.0, dst_host_serror_rate: 0.92,
+        dst_host_srv_serror_rate: 0.92, dst_host_rerror_rate: 0.0,
+        dst_host_srv_rerror_rate: 0.0
+    },
+    probe: {
+        duration: 0, protocol_type: 'icmp', service: 'other', flag: 'SF',
+        src_bytes: 8, dst_bytes: 0, land: 0, wrong_fragment: 0, urgent: 0,
+        hot: 0, num_failed_logins: 0, logged_in: 0, num_compromised: 0,
+        root_shell: 0, su_attempted: 0, num_root: 0, num_file_creations: 0,
+        num_shells: 0, num_access_files: 0, is_host_login: 0, is_guest_login: 0,
+        count: 300, srv_count: 1, serror_rate: 0.0, srv_serror_rate: 0.0,
+        rerror_rate: 0.6, srv_rerror_rate: 0.8, same_srv_rate: 0.02,
+        diff_srv_rate: 0.85, srv_diff_host_rate: 0.0, dst_host_count: 255,
+        dst_host_srv_count: 1, dst_host_same_srv_rate: 0.01,
+        dst_host_diff_srv_rate: 0.6, dst_host_same_src_port_rate: 0.0,
+        dst_host_srv_diff_host_rate: 0.0, dst_host_serror_rate: 0.0,
+        dst_host_srv_serror_rate: 0.0, dst_host_rerror_rate: 0.4,
+        dst_host_srv_rerror_rate: 0.5
+    },
+    r2l: {
+        duration: 300, protocol_type: 'tcp', service: 'ftp', flag: 'SF',
+        src_bytes: 2000, dst_bytes: 500, land: 0, wrong_fragment: 0, urgent: 0,
+        hot: 5, num_failed_logins: 4, logged_in: 0, num_compromised: 1,
+        root_shell: 0, su_attempted: 0, num_root: 0, num_file_creations: 0,
+        num_shells: 0, num_access_files: 0, is_host_login: 0, is_guest_login: 1,
+        count: 10, srv_count: 8, serror_rate: 0.0, srv_serror_rate: 0.0,
+        rerror_rate: 0.0, srv_rerror_rate: 0.0, same_srv_rate: 0.8,
+        diff_srv_rate: 0.1, srv_diff_host_rate: 0.0, dst_host_count: 50,
+        dst_host_srv_count: 30, dst_host_same_srv_rate: 0.6,
+        dst_host_diff_srv_rate: 0.1, dst_host_same_src_port_rate: 0.5,
+        dst_host_srv_diff_host_rate: 0.1, dst_host_serror_rate: 0.0,
+        dst_host_srv_serror_rate: 0.0, dst_host_rerror_rate: 0.0,
+        dst_host_srv_rerror_rate: 0.0
+    }
+};
+
+function fillPreset(type) {
+    const preset = PRESETS[type];
+    if (!preset) return;
+
+    const form = document.getElementById('predictionForm');
+    for (const [key, value] of Object.entries(preset)) {
+        const field = form.querySelector(`[name="${key}"]`);
+        if (field) field.value = value;
+    }
+}
+
+async function submitPrediction(e) {
+    e.preventDefault();
+    const form = document.getElementById('predictionForm');
+    const btn = document.getElementById('submitBtn');
+    const resultPanel = document.getElementById('resultPanel');
+
+    // Collect form data
+    const formData = new FormData(form);
+    const data = {};
+    for (const [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+
+    // Show loading
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Analyzing...';
+    resultPanel.innerHTML = `
+        <div class="text-center py-5">
+            <div class="cyber-spinner-sm">
+                <div class="spinner-border text-info" role="status"></div>
+            </div>
+            <p class="mt-3 text-muted">Running threat analysis...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch('/api/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            renderResult(result);
+        } else {
+            resultPanel.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                    <strong>Error:</strong> ${result.error || 'Unknown error occurred'}
+                </div>
+            `;
+        }
+    } catch(err) {
+        resultPanel.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                <strong>Network Error:</strong> ${err.message}
+            </div>
+        `;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-shield-fill-check"></i> Analyze Threat';
+    }
+}
+
+function renderResult(result) {
+    const panel = document.getElementById('resultPanel');
+    const isAttack = result.prediction === 1;
+    const color = isAttack ? '#ff1744' : '#00e676';
+    const icon = isAttack ? 'shield-fill-exclamation' : 'shield-fill-check';
+    const label = result.label;
+    const confidence = result.confidence || 'N/A';
+
+    panel.innerHTML = `
+        <div class="result-display animate-result">
+            <div class="result-icon-container" style="color: ${color}">
+                <i class="bi bi-${icon}" style="font-size: 5rem;"></i>
+            </div>
+            <h3 class="result-label" style="color: ${color}">${label}</h3>
+            <div class="result-confidence">
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: ${confidence}%; background: ${color}"></div>
+                </div>
+                <span class="confidence-value">${confidence}% Confidence</span>
+            </div>
+            <div class="result-details mt-4">
+                <div class="detail-item">
+                    <span class="detail-label">Classification</span>
+                    <span class="detail-value badge ${isAttack ? 'bg-danger' : 'bg-success'}">${label}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Threat Level</span>
+                    <span class="detail-value">${isAttack ? '🔴 High Risk' : '🟢 Low Risk'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Confidence</span>
+                    <span class="detail-value">${confidence}%</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Action Required</span>
+                    <span class="detail-value">${isAttack ? 'Investigate immediately' : 'No action needed'}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+</script>
+{% endblock %}

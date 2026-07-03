@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+{% block page_title %}About This Project{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Project Overview -->
+    <div class="col-lg-8">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-info-circle-fill"></i> Project Overview</h5>
+            </div>
+            <div class="cyber-card-body">
+                <h3 class="mb-3">AI-Based Cyber Threat Detection Framework</h3>
+                <p>
+                    This project implements an intelligent network intrusion detection system using
+                    machine learning algorithms. It analyzes network traffic patterns to distinguish
+                    between normal connections and potential cyber attacks, providing real-time
+                    threat assessment with confidence scoring.
+                </p>
+
+                <h5 class="mt-4 mb-3"><i class="bi bi-bullseye text-info"></i> Objectives</h5>
+                <ul class="feature-list">
+                    <li>Detect network intrusions using supervised machine learning</li>
+                    <li>Compare multiple ML algorithms and auto-select the best performer</li>
+                    <li>Provide both single and batch prediction capabilities</li>
+                    <li>Visualize model performance with interactive analytics</li>
+                    <li>Maintain prediction audit trails for compliance</li>
+                    <li>Deliver a production-ready web application with REST APIs</li>
+                </ul>
+
+                <h5 class="mt-4 mb-3"><i class="bi bi-database-fill text-info"></i> Dataset</h5>
+                <p>
+                    The framework uses a synthetic dataset modeled after the
+                    <strong>NSL-KDD</strong> benchmark dataset — the industry-standard dataset
+                    for evaluating network intrusion detection systems. It contains 25,000 records
+                    with 41+ features capturing connection-level attributes including:
+                </p>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <div class="info-box">
+                            <h6><i class="bi bi-link-45deg"></i> Basic Features</h6>
+                            <small>Duration, protocol, service, flag, bytes transferred</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-box">
+                            <h6><i class="bi bi-person-lock"></i> Content Features</h6>
+                            <small>Failed logins, root shell, compromised indicators</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-box">
+                            <h6><i class="bi bi-reception-4"></i> Traffic Features</h6>
+                            <small>Connection counts, error rates, service rates</small>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3"><i class="bi bi-layers-fill text-info"></i> Attack Categories</h5>
+                <div class="table-responsive">
+                    <table class="table cyber-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Examples</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-success">Normal</span></td>
+                                <td>Legitimate network traffic</td>
+                                <td>Regular HTTP, email, file transfers</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-danger">DoS</span></td>
+                                <td>Denial of Service attacks</td>
+                                <td>SYN flood, Smurf, Neptune, Teardrop</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">Probe</span></td>
+                                <td>Surveillance and scanning</td>
+                                <td>Port scan, IP sweep, Nmap, Satan</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-info">R2L</span></td>
+                                <td>Remote to Local access</td>
+                                <td>Password guessing, FTP write, Phishing</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-purple">U2R</span></td>
+                                <td>User to Root privilege escalation</td>
+                                <td>Buffer overflow, Rootkit, Perl exploit</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h5 class="mt-4 mb-3"><i class="bi bi-cpu-fill text-info"></i> ML Pipeline</h5>
+                <div class="pipeline-visual">
+                    <div class="pipeline-step">
+                        <div class="pipeline-icon"><i class="bi bi-database"></i></div>
+                        <span>Data Loading</span>
+                    </div>
+                    <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+                    <div class="pipeline-step">
+                        <div class="pipeline-icon"><i class="bi bi-funnel"></i></div>
+                        <span>Cleaning</span>
+                    </div>
+                    <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+                    <div class="pipeline-step">
+                        <div class="pipeline-icon"><i class="bi bi-gear"></i></div>
+                        <span>Feature Eng.</span>
+                    </div>
+                    <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+                    <div class="pipeline-step">
+                        <div class="pipeline-icon"><i class="bi bi-cpu"></i></div>
+                        <span>Training</span>
+                    </div>
+                    <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+                    <div class="pipeline-step">
+                        <div class="pipeline-icon"><i class="bi bi-trophy"></i></div>
+                        <span>Selection</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="col-lg-4">
+        <!-- Tech Stack Card -->
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-stack"></i> Tech Stack</h5>
+            </div>
+            <div class="cyber-card-body">
+                <div class="tech-list">
+                    <div class="tech-list-item">
+                        <span class="tech-badge bg-python">Python</span>
+                        <span class="text-muted">Backend & ML</span>
+                    </div>
+                    <div class="tech-list-item">
+                        <span class="tech-badge bg-flask">Flask</span>
+                        <span class="text-muted">Web Framework</span>
+                    </div>
+                    <div class="tech-list-item">
+                        <span class="tech-badge bg-sklearn">Scikit-learn</span>
+                        <span class="text-muted">Machine Learning</span>
+                    </div>
+                    <div class="tech-list-item">
+                        <span class="tech-badge bg-pandas">Pandas</span>
+                        <span class="text-muted">Data Processing</span>
+                    </div>
+                    <div class="tech-list-item">
+                        <span class="tech-badge bg-numpy">NumPy</span>
+                        <span class="text-muted">Numerical Computing</span>
+                    </div>
+                    <div class="tech-list-item">
+                        <span class="tech-badge bg-bootstrap">Bootstrap 5</span>
+                        <span class="text-muted">UI Framework</span>
+                    </div>
+                    <div class="tech-list-item">
+                        <span class="tech-badge bg-chartjs">Chart.js</span>
+                        <span class="text-muted">Visualizations</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ML Models Card -->
+        <div class="cyber-card mt-4">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-cpu"></i> ML Models Used</h5>
+            </div>
+            <div class="cyber-card-body">
+                <div class="model-list">
+                    <div class="model-item">
+                        <i class="bi bi-tree-fill text-success"></i>
+                        <span>Random Forest Classifier</span>
+                    </div>
+                    <div class="model-item">
+                        <i class="bi bi-graph-up-arrow text-warning"></i>
+                        <span>Gradient Boosting Classifier</span>
+                    </div>
+                    <div class="model-item">
+                        <i class="bi bi-diagram-3-fill text-info"></i>
+                        <span>Decision Tree Classifier</span>
+                    </div>
+                    <div class="model-item">
+                        <i class="bi bi-people-fill text-primary"></i>
+                        <span>K-Nearest Neighbors</span>
+                    </div>
+                    <div class="model-item">
+                        <i class="bi bi-bezier2 text-danger"></i>
+                        <span>Logistic Regression</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="cyber-card mt-4">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-lightning-fill"></i> Quick Links</h5>
+            </div>
+            <div class="cyber-card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('views.dashboard') }}" class="btn btn-outline-info text-start">
+                        <i class="bi bi-grid-1x2-fill me-2"></i> Go to Dashboard
+                    </a>
+                    <a href="{{ url_for('views.predict_page') }}" class="btn btn-outline-info text-start">
+                        <i class="bi bi-crosshair me-2"></i> Make Prediction
+                    </a>
+                    <a href="{{ url_for('views.upload_page') }}" class="btn btn-outline-info text-start">
+                        <i class="bi bi-cloud-arrow-up me-2"></i> Upload CSV
+                    </a>
+                    <a href="{{ url_for('views.analytics_page') }}" class="btn btn-outline-info text-start">
+                        <i class="bi bi-bar-chart-line me-2"></i> View Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+/* =====================================================
+   CyberShield AI - Dashboard Extra Styles
+   ===================================================== */
+
+/* Ensure chart canvases render properly in dark theme */
+canvas {
+    max-width: 100%;
+}

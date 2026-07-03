@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="cyber-spinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+        <i class="bi bi-shield-lock-fill spinner-icon"></i>
+    </div>
+    <p class="loading-text">Analyzing Threat Data...</p>
+</div>
+
+<!-- Stats Cards Row -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-primary">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h6 class="stat-card-label">Model Status</h6>
+                    <h3 class="stat-card-value" id="modelStatus">Loading...</h3>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <span id="modelType">--</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-success">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h6 class="stat-card-label">Normal Traffic</h6>
+                    <h3 class="stat-card-value" id="normalCount">0</h3>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <span class="text-success"><i class="bi bi-arrow-up"></i> Safe connections</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-danger">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h6 class="stat-card-label">Threats Detected</h6>
+                    <h3 class="stat-card-value" id="threatCount">0</h3>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <span class="text-danger" id="threatPct">0% threat rate</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-info">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="bi bi-bullseye"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h6 class="stat-card-label">Model Accuracy</h6>
+                    <h3 class="stat-card-value" id="modelAccuracy">--</h3>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <span id="bestModel">Best model</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-bar-chart-line-fill"></i> Model Performance Comparison</h5>
+            </div>
+            <div class="cyber-card-body">
+                <canvas id="modelComparisonChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-pie-chart-fill"></i> Threat Distribution</h5>
+            </div>
+            <div class="cyber-card-body d-flex align-items-center justify-content-center">
+                <canvas id="threatDistChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-grid-3x3-gap-fill"></i> Confusion Matrix (Best Model)</h5>
+            </div>
+            <div class="cyber-card-body">
+                <div class="confusion-matrix" id="confusionMatrix">
+                    <p class="text-muted text-center">Train the model to see the confusion matrix</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <h5><i class="bi bi-speedometer2"></i> Metrics Radar</h5>
+            </div>
+            <div class="cyber-card-body d-flex align-items-center justify-content-center">
+                <canvas id="metricsRadarChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Predictions Table -->
+<div class="row g-4">
+    <div class="col-12">
+        <div class="cyber-card">
+            <div class="cyber-card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-clock-history"></i> Recent Predictions</h5>
+                <a href="{{ url_for('views.history_page') }}" class="btn btn-sm btn-outline-light">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="cyber-card-body">
+                <div class="table-responsive">
+                    <table class="table cyber-table" id="recentTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Time</th>
+                                <th>Type</th>
+                                <th>Details</th>
+                                <th>Result</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                    <p class="mt-2">No predictions yet. Start by predicting a threat.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4 mt-2">
+    <div class="col-md-4">
+        <a href="{{ url_for('views.predict_page') }}" class="quick-action-card">
+            <i class="bi bi-crosshair"></i>
+            <span>Manual Prediction</span>
+            <i class="bi bi-arrow-right action-arrow"></i>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('views.upload_page') }}" class="quick-action-card">
+            <i class="bi bi-cloud-arrow-up-fill"></i>
+            <span>Upload CSV File</span>
+            <i class="bi bi-arrow-right action-arrow"></i>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('views.analytics_page') }}" class="quick-action-card">
+            <i class="bi bi-bar-chart-line-fill"></i>
+            <span>View Analytics</span>
+            <i class="bi bi-arrow-right action-arrow"></i>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+});
+
+async function loadDashboardData() {
+    const overlay = document.getElementById('loadingOverlay');
+    try {
+        // Load dashboard stats
+        const statsRes = await fetch('/api/dashboard-stats');
+        const stats = await statsRes.json();
+
+        document.getElementById('modelStatus').textContent =
+            stats.model_status === 'active' ? 'Active' : 'Not Trained';
+        document.getElementById('modelStatus').className =
+            'stat-card-value ' + (stats.model_status === 'active' ? 'text-success' : 'text-warning');
+        document.getElementById('modelType').textContent =
+            stats.model_type || 'No model loaded';
+        document.getElementById('normalCount').textContent =
+            stats.normal_detected || 0;
+        document.getElementById('threatCount').textContent =
+            stats.threats_detected || 0;
+        document.getElementById('threatPct').textContent =
+            (stats.threat_percentage || 0) + '% threat rate';
+
+        if (stats.accuracy) {
+            document.getElementById('modelAccuracy').textContent =
+                (stats.accuracy * 100).toFixed(2) + '%';
+        }
+        if (stats.best_model) {
+            document.getElementById('bestModel').textContent = stats.best_model;
+        }
+
+        // Load training results for charts
+        try {
+            const trainingRes = await fetch('/api/training-results');
+            if (trainingRes.ok) {
+                const trainingData = await trainingRes.json();
+                initModelComparisonChart(trainingData);
+                initMetricsRadarChart(trainingData);
+                initConfusionMatrix(trainingData);
+                initThreatDistChart(stats);
+            }
+        } catch(e) {
+            console.log('Training results not available yet');
+            initThreatDistChart(stats);
+        }
+
+        // Load recent history
+        try {
+            const histRes = await fetch('/api/history');
+            const history = await histRes.json();
+            renderRecentTable(history.slice(0, 10));
+        } catch(e) {
+            console.log('History not available');
+        }
+
+    } catch(err) {
+        console.error('Error loading dashboard:', err);
+    } finally {
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    }
+}
+
+function renderRecentTable(history) {
+    const tbody = document.getElementById('recentTableBody');
+    if (!history || history.length === 0) return;
+
+    tbody.innerHTML = history.map(entry => {
+        const time = new Date(entry.timestamp).toLocaleString();
+        const isAttack = entry.prediction === 'Attack' || entry.attacks_detected > 0;
+        const badge = isAttack
+            ? '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> Attack</span>'
+            : '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Normal</span>';
+
+        let details = '';
+        if (entry.type === 'single') {
+            const s = entry.input_summary || {};
+            details = `${s.protocol || 'N/A'} / ${s.service || 'N/A'}`;
+        } else {
+            details = `${entry.filename || 'CSV'} (${entry.total_records || 0} records)`;
+        }
+
+        const confidence = entry.confidence ? entry.confidence + '%' :
+            (entry.attack_percentage !== undefined ? entry.attack_percentage + '% threats' : '--');
+
+        return `<tr>
+            <td><code>${entry.id}</code></td>
+            <td>${time}</td>
+            <td><span class="badge bg-${entry.type === 'batch' ? 'info' : 'secondary'}">${entry.type}</span></td>
+            <td>${details}</td>
+            <td>${badge}</td>
+            <td>${confidence}</td>
+        </tr>`;
+    }).join('');
+}
+</script>
+{% endblock %}

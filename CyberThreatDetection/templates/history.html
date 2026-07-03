@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction History{% endblock %}
+{% block page_title %}Prediction History{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="cyber-card">
+            <div class="cyber-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5><i class="bi bi-clock-history"></i> All Predictions</h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-info" onclick="refreshHistory()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearHistory()">
+                        <i class="bi bi-trash3"></i> Clear All
+                    </button>
+                </div>
+            </div>
+            <div class="cyber-card-body">
+                <!-- Filter Row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text cyber-input-addon"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control cyber-input" id="searchInput" placeholder="Search predictions..." oninput="filterHistory()">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select cyber-input" id="typeFilter" onchange="filterHistory()">
+                            <option value="all">All Types</option>
+                            <option value="single">Single</option>
+                            <option value="batch">Batch</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select cyber-input" id="resultFilter" onchange="filterHistory()">
+                            <option value="all">All Results</option>
+                            <option value="attack">Attacks Only</option>
+                            <option value="normal">Normal Only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <span class="badge bg-info" id="totalCount">0 records</span>
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="table-responsive">
+                    <table class="table cyber-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Details</th>
+                                <th>Result</th>
+                                <th>Confidence / Stats</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <div class="spinner-border text-info mb-3" role="status"></div>
+                                    <p>Loading prediction history...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allHistory = [];
+
+document.addEventListener('DOMContentLoaded', refreshHistory);
+
+async function refreshHistory() {
+    try {
+        const res = await fetch('/api/history');
+        allHistory = await res.json();
+        renderHistory(allHistory);
+    } catch(err) {
+        document.getElementById('historyTableBody').innerHTML = `
+            <tr><td colspan="7" class="text-center text-danger py-4">
+                <i class="bi bi-exclamation-circle"></i> Error loading history: ${err.message}
+            </td></tr>
+        `;
+    }
+}
+
+function renderHistory(history) {
+    const tbody = document.getElementById('historyTableBody');
+    document.getElementById('totalCount').textContent = history.length + ' records';
+
+    if (!history || history.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="7" class="text-center text-muted py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p class="mt-2">No prediction history found.</p>
+            </td></tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = history.map(entry => {
+        const time = new Date(entry.timestamp).toLocaleString();
+        const typeBadge = entry.type === 'batch'
+            ? '<span class="badge bg-info">Batch</span>'
+            : '<span class="badge bg-secondary">Single</span>';
+
+        let details, result, stats, actions;
+
+        if (entry.type === 'single') {
+            const s = entry.input_summary || {};
+            details = `<code>${s.protocol || 'N/A'}/${s.service || 'N/A'}</code><br>
+                       <small class="text-muted">${s.src_bytes || 0}B → ${s.dst_bytes || 0}B</small>`;
+            const isAttack = entry.prediction === 'Attack';
+            result = isAttack
+                ? '<span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> Attack</span>'
+                : '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Normal</span>';
+            stats = entry.confidence ? entry.confidence + '%' : '--';
+            actions = '';
+        } else {
+            details = `<i class="bi bi-file-earmark-spreadsheet"></i> ${entry.filename || 'CSV'}<br>
+                       <small class="text-muted">${entry.total_records || 0} records</small>`;
+            const hasAttacks = entry.attacks_detected > 0;
+            result = hasAttacks
+                ? `<span class="badge bg-danger">${entry.attacks_detected} Attacks</span>`
+                : '<span class="badge bg-success">All Normal</span>';
+            stats = `${entry.attack_percentage || 0}% threats<br>
+                     <small>${entry.normal_detected || 0} normal / ${entry.attacks_detected || 0} attacks</small>`;
+            actions = entry.result_file
+                ? `<a href="/api/download/${entry.result_file}" class="btn btn-sm btn-outline-success" title="Download Results">
+                    <i class="bi bi-download"></i>
+                   </a>`
+                : '';
+        }
+
+        return `<tr>
+            <td><code>${entry.id}</code></td>
+            <td><small>${time}</small></td>
+            <td>${typeBadge}</td>
+            <td>${details}</td>
+            <td>${result}</td>
+            <td>${stats}</td>
+            <td>${actions}</td>
+        </tr>`;
+    }).join('');
+}
+
+function filterHistory() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
+    const resultFilter = document.getElementById('resultFilter').value;
+
+    let filtered = allHistory;
+
+    if (typeFilter !== 'all') {
+        filtered = filtered.filter(e => e.type === typeFilter);
+    }
+
+    if (resultFilter !== 'all') {
+        filtered = filtered.filter(e => {
+            if (resultFilter === 'attack') {
+                return e.prediction === 'Attack' || (e.attacks_detected && e.attacks_detected > 0);
+            } else {
+                return e.prediction === 'Normal' || (e.attacks_detected === 0);
+            }
+        });
+    }
+
+    if (search) {
+        filtered = filtered.filter(e =>
+            JSON.stringify(e).toLowerCase().includes(search)
+        );
+    }
+
+    renderHistory(filtered);
+}
+
+async function clearHistory() {
+    if (!confirm('Are you sure you want to clear all prediction history?')) return;
+    try {
+        await fetch('/api/history/clear', { method: 'POST' });
+        allHistory = [];
+        renderHistory([]);
+    } catch(err) {
+        alert('Error clearing history: ' + err.message);
+    }
+}
+</script>
+{% endblock %}

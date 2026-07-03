@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Model Analytics{% endblock %}
+{% block page_title %}Model Analytics & Performance{% endblock %}
+
+{% block content %}
+<!-- Loading State -->
+<div id="analyticsLoading" class="text-center py-5">
+    <div class="spinner-border text-info mb-3" role="status"></div>
+    <p class="text-muted">Loading model analytics...</p>
+</div>
+
+<div id="analyticsContent" class="d-none">
+    <!-- Model Selection Info -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="cyber-card border-accent">
+                <div class="cyber-card-body">
+                    <div class="d-flex align-items-center gap-4 flex-wrap">
+                        <div class="best-model-badge">
+                            <i class="bi bi-trophy-fill"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1" id="bestModelTitle">Best Model</h4>
+                            <p class="text-muted mb-0">Automatically selected based on highest F1 Score</p>
+                        </div>
+                        <div class="ms-auto text-end">
+                            <h3 class="mb-0 text-success" id="bestModelF1">--</h3>
+                            <small class="text-muted">F1 Score</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="row g-4 mb-4" id="metricsCards"></div>
+
+    <!-- Charts -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="cyber-card">
+                <div class="cyber-card-header">
+                    <h5><i class="bi bi-bar-chart-line-fill"></i> Model Accuracy Comparison</h5>
+                </div>
+                <div class="cyber-card-body">
+                    <canvas id="accuracyChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="cyber-card">
+                <div class="cyber-card-header">
+                    <h5><i class="bi bi-clock-fill"></i> Training Time Comparison</h5>
+                </div>
+                <div class="cyber-card-body">
+                    <canvas id="timeChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="cyber-card">
+                <div class="cyber-card-header">
+                    <h5><i class="bi bi-table"></i> Detailed Metrics Table</h5>
+                </div>
+                <div class="cyber-card-body">
+                    <div class="table-responsive">
+                        <table class="table cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Accuracy</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1 Score</th>
+                                    <th>ROC AUC</th>
+                                    <th>Time (s)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metricsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="cyber-card">
+                <div class="cyber-card-header">
+                    <h5><i class="bi bi-speedometer2"></i> Best Model Radar</h5>
+                </div>
+                <div class="cyber-card-body d-flex align-items-center justify-content-center">
+                    <canvas id="radarChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confusion Matrices -->
+    <div class="row g-4" id="confusionMatricesRow"></div>
+</div>
+
+<!-- No Data State -->
+<div id="noDataState" class="d-none">
+    <div class="cyber-card">
+        <div class="cyber-card-body text-center py-5">
+            <i class="bi bi-bar-chart-line" style="font-size: 4rem; opacity: 0.3;"></i>
+            <h4 class="mt-3">No Training Data Available</h4>
+            <p class="text-muted">Run <code>python train_model.py</code> to train models and see analytics here.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', loadAnalytics);
+
+async function loadAnalytics() {
+    try {
+        const res = await fetch('/api/training-results');
+        if (!res.ok) throw new Error('No training results');
+
+        const data = await res.json();
+        const results = data.results || {};
+        const bestModel = data.best_model || '';
+
+        if (Object.keys(results).length === 0) throw new Error('Empty results');
+
+        document.getElementById('analyticsLoading').classList.add('d-none');
+        document.getElementById('analyticsContent').classList.remove('d-none');
+
+        // Best model info
+        document.getElementById('bestModelTitle').innerHTML =
+            `<i class="bi bi-trophy-fill text-warning"></i> ${bestModel}`;
+        const bestMetrics = results[bestModel];
+        if (bestMetrics) {
+            document.getElementById('bestModelF1').textContent =
+                (bestMetrics.f1_score * 100).toFixed(2) + '%';
+        }
+
+        // Metrics Cards
+        renderMetricsCards(results, bestModel);
+
+        // Charts
+        renderAccuracyChart(results, bestModel);
+        renderTimeChart(results);
+        renderRadarChart(results, bestModel);
+        renderMetricsTable(results, bestModel);
+        renderConfusionMatrices(results);
+
+    } catch(err) {
+        document.getElementById('analyticsLoading').classList.add('d-none');
+        document.getElementById('noDataState').classList.remove('d-none');
+    }
+}
+
+function renderMetricsCards(results, bestModel) {
+    const m = results[bestModel];
+    if (!m) return;
+
+    const cards = [
+        { label: 'Accuracy', value: (m.accuracy * 100).toFixed(2) + '%', icon: 'bullseye', color: 'primary' },
+        { label: 'Precision', value: (m.precision * 100).toFixed(2) + '%', icon: 'crosshair', color: 'success' },
+        { label: 'Recall', value: (m.recall * 100).toFixed(2) + '%', icon: 'reception-4', color: 'info' },
+        { label: 'F1 Score', value: (m.f1_score * 100).toFixed(2) + '%', icon: 'award-fill', color: 'warning' },
+    ];
+
+    document.getElementById('metricsCards').innerHTML = cards.map(c => `
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card stat-card-${c.color}">
+                <div class="stat-card-body">
+                    <div class="stat-card-icon"><i class="bi bi-${c.icon}"></i></div>
+                    <div class="stat-card-info">
+                        <h6 class="stat-card-label">${c.label}</h6>
+                        <h3 class="stat-card-value">${c.value}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderAccuracyChart(results, bestModel) {
+    const labels = Object.keys(results);
+    const accuracies = labels.map(l => (results[l].accuracy * 100));
+    const colors = labels.map(l => l === bestModel ? '#00e5ff' : 'rgba(0, 229, 255, 0.4)');
+
+    new Chart(document.getElementById('accuracyChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Accuracy (%)',
+                data: accuracies,
+                backgroundColor: colors,
+                borderColor: '#00e5ff',
+                borderWidth: 1,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: false, min: Math.max(0, Math.min(...accuracies) - 5),
+                     grid: { color: 'rgba(255,255,255,0.05)' },
+                     ticks: { color: '#aaa', callback: v => v + '%' } },
+                x: { grid: { display: false }, ticks: { color: '#aaa' } }
+            }
+        }
+    });
+}
+
+function renderTimeChart(results) {
+    const labels = Object.keys(results);
+    const times = labels.map(l => results[l].training_time || 0);
+
+    new Chart(document.getElementById('timeChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Training Time (s)',
+                data: times,
+                backgroundColor: 'rgba(255, 171, 0, 0.6)',
+                borderColor: '#ffab00',
+                borderWidth: 1,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true,
+                     grid: { color: 'rgba(255,255,255,0.05)' },
+                     ticks: { color: '#aaa', callback: v => v + 's' } },
+                x: { grid: { display: false }, ticks: { color: '#aaa' } }
+            }
+        }
+    });
+}
+
+function renderRadarChart(results, bestModel) {
+    const m = results[bestModel];
+    if (!m) return;
+
+    new Chart(document.getElementById('radarChart'), {
+        type: 'radar',
+        data: {
+            labels: ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'ROC AUC'],
+            datasets: [{
+                label: bestModel,
+                data: [m.accuracy, m.precision, m.recall, m.f1_score, m.roc_auc || 0],
+                backgroundColor: 'rgba(0, 229, 255, 0.15)',
+                borderColor: '#00e5ff',
+                pointBackgroundColor: '#00e5ff',
+                pointBorderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#ccc' } } },
+            scales: {
+                r: {
+                    beginAtZero: true, max: 1,
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    pointLabels: { color: '#ccc' },
+                    ticks: { display: false }
+                }
+            }
+        }
+    });
+}
+
+function renderMetricsTable(results, bestModel) {
+    const tbody = document.getElementById('metricsTableBody');
+    tbody.innerHTML = Object.entries(results).map(([name, m]) => {
+        const isBest = name === bestModel;
+        const roc = m.roc_auc !== null ? (m.roc_auc * 100).toFixed(2) + '%' : 'N/A';
+        return `<tr class="${isBest ? 'table-active' : ''}">
+            <td><strong>${name}</strong> ${isBest ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}</td>
+            <td>${(m.accuracy * 100).toFixed(2)}%</td>
+            <td>${(m.precision * 100).toFixed(2)}%</td>
+            <td>${(m.recall * 100).toFixed(2)}%</td>
+            <td>${(m.f1_score * 100).toFixed(2)}%</td>
+            <td>${roc}</td>
+            <td>${m.training_time || '--'}s</td>
+            <td>${isBest ? '<span class="badge bg-success">Selected</span>' : '<span class="badge bg-secondary">--</span>'}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderConfusionMatrices(results) {
+    const container = document.getElementById('confusionMatricesRow');
+    container.innerHTML = Object.entries(results).map(([name, m]) => {
+        if (!m.confusion_matrix) return '';
+        const cm = m.confusion_matrix;
+        const total = cm[0][0] + cm[0][1] + cm[1][0] + cm[1][1];
+        return `
+        <div class="col-lg-4 col-md-6">
+            <div class="cyber-card">
+                <div class="cyber-card-header">
+                    <h6 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> ${name}</h6>
+                </div>
+                <div class="cyber-card-body">
+                    <div class="cm-grid">
+                        <div class="cm-corner"></div>
+                        <div class="cm-header">Pred Normal</div>
+                        <div class="cm-header">Pred Attack</div>
+                        <div class="cm-label">Actual Normal</div>
+                        <div class="cm-cell cm-tn">${cm[0][0]}<br><small>${((cm[0][0]/total)*100).toFixed(1)}%</small></div>
+                        <div class="cm-cell cm-fp">${cm[0][1]}<br><small>${((cm[0][1]/total)*100).toFixed(1)}%</small></div>
+                        <div class="cm-label">Actual Attack</div>
+                        <div class="cm-cell cm-fn">${cm[1][0]}<br><small>${((cm[1][0]/total)*100).toFixed(1)}%</small></div>
+                        <div class="cm-cell cm-tp">${cm[1][1]}<br><small>${((cm[1][1]/total)*100).toFixed(1)}%</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+</script>
+{% endblock %}

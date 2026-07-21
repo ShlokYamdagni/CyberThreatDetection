@@ -1,0 +1,15 @@
+# render.yaml — Render Blueprint (Infrastructure as Code)
+# This tells Render how to build and run the app
+
+services:
+  - type: web
+    name: cyber-threat-detection
+    runtime: python
+    plan: free
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: gunicorn -c gunicorn_config.py "app:create_app('production')"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.4"
+      - key: SECRET_KEY
+        generateValue: true
